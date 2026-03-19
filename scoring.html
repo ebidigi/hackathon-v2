@@ -548,10 +548,10 @@
         const card = btn.closest('.team-card');
         card.classList.remove('expanded');
         card.style.borderColor = 'rgba(74,170,74,0.4)';
-        btn.textContent = '送信済';
-        btn.style.opacity = '0.5';
+        btn.textContent = '送信済（タップで再送信）';
         btn.style.background = '#4a4';
         btn.style.color = '#fff';
+        btn.disabled = false;
       } catch (err) {
         btn.textContent = '送信エラー（再試行）';
         btn.disabled = false;
