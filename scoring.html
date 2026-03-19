@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>採点シート - Build Battle Vol.2</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Orbitron:wght@700;900&display=swap');
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family:'Noto Sans JP',sans-serif;
+      background:#0a0a0a;
+      color:#fff;
+      min-height:100vh;
+      padding:1rem;
+      padding-bottom:100px;
+    }
+
+    .header {
+      text-align:center;
+      padding:1rem 0 0.5rem;
+    }
+    .header h1 {
+      font-family:'Orbitron',sans-serif;
+      font-size:1.2rem;
+      color:#ffd700;
+      letter-spacing:0.15em;
+    }
+    .header p {
+      font-size:0.8rem;
+      color:#666;
+      margin-top:0.3rem;
+    }
+
+    /* Scorer name */
+    .scorer-area {
+      text-align:center;
+      margin:1rem 0;
+    }
+    .scorer-input {
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,215,0,0.3);
+      border-radius:8px;
+      color:#fff;
+      font-size:1rem;
+      padding:0.5rem 1rem;
+      text-align:center;
+      width:200px;
+      font-family:'Noto Sans JP',sans-serif;
+    }
+    .scorer-input::placeholder { color:#555; }
+    .scorer-input:focus { outline:none; border-color:#ffd700; }
+
+    /* Criteria info */
+    .criteria-info {
+      background:rgba(184,134,11,0.08);
+      border:1px solid rgba(184,134,11,0.2);
+      border-radius:10px;
+      padding:0.8rem 1rem;
+      margin:0.8rem 0 1.2rem;
+      font-size:0.8rem;
+      color:#aaa;
+      line-height:1.6;
+    }
+    .criteria-info strong { color:#ffd700; }
+
+    /* Team cards */
+    .team-card {
+      background:rgba(255,255,255,0.03);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:12px;
+      padding:1rem;
+      margin-bottom:0.8rem;
+      transition:all 0.3s;
+    }
+    .team-card.expanded {
+      border-color:rgba(255,215,0,0.3);
+      background:rgba(184,134,11,0.05);
+    }
+    .team-header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      cursor:pointer;
+    }
+    .team-name {
+      font-size:1.1rem;
+      font-weight:900;
+    }
+    .team-members {
+      font-size:0.75rem;
+      color:#666;
+      margin-top:0.15rem;
+    }
+    .team-total {
+      font-family:'Orbitron',sans-serif;
+      font-size:1.8rem;
+      font-weight:900;
+      color:#ffd700;
+      min-width:60px;
+      text-align:right;
+    }
+
+    .team-scores {
+      display:none;
+      margin-top:0.8rem;
+      padding-top:0.8rem;
+      border-top:1px solid rgba(255,255,255,0.06);
+    }
+    .team-card.expanded .team-scores { display:block; }
+
+    .score-item {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:0.6rem;
+    }
+    .score-label {
+      font-size:0.85rem;
+      color:#aaa;
+      flex:1;
+    }
+    .score-slider-area {
+      display:flex;
+      align-items:center;
+      gap:0.5rem;
+    }
+    .score-val {
+      font-family:'Orbitron',sans-serif;
+      font-size:1.2rem;
+      font-weight:700;
+      color:#ffd700;
+      min-width:30px;
+      text-align:right;
+    }
+    input[type="range"] {
+      -webkit-appearance:none;
+      width:140px;
+      height:6px;
+      border-radius:3px;
+      background:rgba(255,255,255,0.1);
+      outline:none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance:none;
+      width:24px; height:24px;
+      border-radius:50%;
+      background:linear-gradient(135deg,#ffd700,#b8860b);
+      cursor:pointer;
+      box-shadow:0 0 8px rgba(255,215,0,0.4);
+    }
+
+    /* Summary */
+    .summary {
+      position:fixed;
+      bottom:0; left:0; right:0;
+      background:rgba(10,10,10,0.95);
+      backdrop-filter:blur(10px);
+      border-top:1px solid rgba(255,215,0,0.2);
+      padding:0.8rem 1rem;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      z-index:100;
+    }
+    .summary-label {
+      font-size:0.85rem;
+      color:#888;
+    }
+    .summary-total {
+      font-family:'Orbitron',sans-serif;
+      font-size:1rem;
+      color:#ffd700;
+      font-weight:700;
+    }
+    .summary-btn {
+      padding:0.5rem 1.2rem;
+      font-size:0.85rem;
+      font-weight:700;
+      border:none;
+      border-radius:25px;
+      background:linear-gradient(135deg,#b8860b,#ffd700);
+      color:#1a0a00;
+      cursor:pointer;
+      font-family:'Noto Sans JP',sans-serif;
+    }
+
+    /* Ranking modal */
+    .comment-area {
+      margin-top:0.6rem;
+      padding-top:0.6rem;
+      border-top:1px solid rgba(255,255,255,0.04);
+    }
+    .comment-label {
+      font-size:0.75rem;
+      color:#666;
+      margin-bottom:0.3rem;
+    }
+    .comment-input {
+      width:100%;
+      min-height:50px;
+      background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:6px;
+      color:#ddd;
+      font-size:0.85rem;
+      padding:0.5rem;
+      font-family:'Noto Sans JP',sans-serif;
+      resize:vertical;
+    }
+    .comment-input::placeholder { color:#444; }
+    .comment-input:focus { outline:none; border-color:rgba(255,215,0,0.3); }
+
+    .ranking-overlay {
+      display:none;
+      position:fixed;
+      top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,0.92);
+      z-index:200;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:2rem;
+    }
+    .ranking-overlay.show { display:flex; }
+    .ranking-title {
+      font-family:'Orbitron',sans-serif;
+      font-size:1.3rem;
+      color:#ffd700;
+      margin-bottom:1.5rem;
+      letter-spacing:0.2em;
+    }
+    .ranking-item {
+      display:flex;
+      align-items:center;
+      gap:1rem;
+      padding:0.7rem 1.5rem;
+      width:100%;
+      max-width:350px;
+      margin-bottom:0.5rem;
+      border-radius:10px;
+      background:rgba(255,255,255,0.03);
+      border:1px solid rgba(255,255,255,0.06);
+    }
+    .ranking-item:first-child {
+      border-color:rgba(255,215,0,0.4);
+      background:rgba(184,134,11,0.1);
+    }
+    .ranking-pos {
+      font-family:'Orbitron',sans-serif;
+      font-size:1.5rem;
+      font-weight:900;
+      color:#b8860b;
+      min-width:30px;
+    }
+    .ranking-item:first-child .ranking-pos { color:#ffd700; }
+    .ranking-name { font-weight:700; flex:1; }
+    .ranking-score {
+      font-family:'Orbitron',sans-serif;
+      font-size:1.3rem;
+      font-weight:900;
+      color:#ffd700;
+    }
+    /* Present overlay */
+    .present-overlay {
+      display:none;
+      position:fixed;
+      top:0; left:0; right:0; bottom:0;
+      background:linear-gradient(180deg,#0a0a0a,#1a1000,#0a0a0a);
+      z-index:250;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:2rem;
+      text-align:center;
+    }
+    .present-overlay.show { display:flex; }
+    .present-scorer {
+      font-size:0.9rem;
+      color:#b8860b;
+      letter-spacing:0.2em;
+      margin-bottom:0.5rem;
+    }
+    .present-team-name {
+      font-size:2rem;
+      font-weight:900;
+      color:#fff;
+      margin-bottom:1.5rem;
+    }
+    .present-scores {
+      display:flex;
+      flex-direction:column;
+      gap:0.6rem;
+      margin-bottom:1rem;
+      width:100%;
+      max-width:300px;
+    }
+    .present-score-row {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      font-size:1rem;
+      color:#aaa;
+    }
+    .present-score-val {
+      font-family:'Orbitron',sans-serif;
+      font-size:1.5rem;
+      font-weight:900;
+      color:#ffd700;
+    }
+    .present-total-label {
+      font-size:0.8rem;
+      color:#666;
+      letter-spacing:0.3em;
+      margin-top:0.5rem;
+    }
+    .present-total {
+      font-family:'Orbitron',sans-serif;
+      font-size:4rem;
+      font-weight:900;
+      color:#ffd700;
+      filter:drop-shadow(0 0 20px rgba(255,215,0,0.3));
+    }
+    .present-comment {
+      margin-top:1.5rem;
+      padding:1rem 1.5rem;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:10px;
+      font-size:1rem;
+      color:#ddd;
+      line-height:1.6;
+      max-width:350px;
+      white-space:pre-wrap;
+      min-height:40px;
+    }
+    .present-close {
+      margin-top:1.5rem;
+      padding:0.6rem 2rem;
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.15);
+      border-radius:25px;
+      color:#ccc;
+      font-size:0.9rem;
+      cursor:pointer;
+      font-family:'Noto Sans JP',sans-serif;
+    }
+
+    .ranking-close {
+      margin-top:1.5rem;
+      padding:0.6rem 2rem;
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.15);
+      border-radius:25px;
+      color:#ccc;
+      font-size:0.9rem;
+      cursor:pointer;
+      font-family:'Noto Sans JP',sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>BUILD BATTLE Vol.2</h1>
+    <p>個人採点シート</p>
+  </div>
+
+  <div class="scorer-area">
+    <input class="scorer-input" type="text" placeholder="あなたの名前" id="scorer-name">
+  </div>
+
+  <div class="criteria-info">
+    <strong>採点基準（各10点満点）</strong><br>
+    1. <strong>業務活用度</strong> — 自分がすぐに使いたいか<br>
+    2. <strong>クオリティ</strong> — 動作・UI含めた完成度<br>
+    3. <strong>プレゼン</strong> — 発表の伝わりやすさ・熱量
+  </div>
+
+  <div id="team-list"></div>
+
+  <div class="summary">
+    <div>
+      <div class="summary-label">入力済</div>
+      <div class="summary-total" id="summary-count">0 / 6 チーム</div>
+    </div>
+    <button class="summary-btn" onclick="showRanking()">ランキング表示</button>
+  </div>
+
+  <!-- Present score modal (個人の採点を大画面表示) -->
+  <div class="present-overlay" id="present-overlay">
+    <div class="present-scorer" id="present-scorer"></div>
+    <div class="present-team-name" id="present-team-name"></div>
+    <div class="present-scores" id="present-scores"></div>
+    <div class="present-total-label">TOTAL</div>
+    <div class="present-total" id="present-total"></div>
+    <div class="present-comment" id="present-comment"></div>
+    <button class="present-close" onclick="document.getElementById('present-overlay').classList.remove('show')">閉じる</button>
+  </div>
+
+  <!-- Ranking modal -->
+  <div class="ranking-overlay" id="ranking-overlay">
+    <div class="ranking-title">MY RANKING</div>
+    <div id="ranking-list"></div>
+    <button class="ranking-close" onclick="document.getElementById('ranking-overlay').classList.remove('show')">閉じる</button>
+  </div>
+
+  <script>
+    // ==========================================
+    //  GAS Web App URL — デプロイ後にここに貼る
+    // ==========================================
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbzRlXtUxk59q2tZqCuglllMAWz_AY07FNbpH0uILeWFtY5_sBonSIHWAdR7-YoORgqQ/exec';
+
+    const TEAMS = [
+      { name:"わんこクラブ", members:"増谷、秋元、生井" },
+      { name:"お寝坊ズ",     members:"中村凌、清水" },
+      { name:"ダブルメガネ", members:"堺、川野" },
+      { name:"JK",           members:"菊池、JB" },
+      { name:"右往左往",     members:"坪井、中村峻也" },
+      { name:"いぶし銀",     members:"松居、野口" },
+      { name:"池田ジュニア", members:"池田、三善、轟" },
+      { name:"小甲陽平",     members:"小甲" },
+    ];
+
+    const CRITERIA = [
+      { key:"business", label:"業務活用度", desc:"すぐに使いたいか" },
+      { key:"quality",  label:"クオリティ", desc:"動作・完成度" },
+      { key:"pres",     label:"プレゼン",   desc:"伝わりやすさ" },
+    ];
+
+    // State
+    const scores = TEAMS.map(() => ({ business:0, quality:0, pres:0 }));
+    const comments = TEAMS.map(() => '');
+
+    function render() {
+      const list = document.getElementById('team-list');
+      list.innerHTML = '';
+
+      TEAMS.forEach((team, ti) => {
+        const total = scores[ti].business + scores[ti].quality + scores[ti].pres;
+        const card = document.createElement('div');
+        card.className = 'team-card' + (total > 0 ? ' expanded' : '');
+        card.innerHTML = `
+          <div class="team-header" onclick="toggleCard(this)">
+            <div>
+              <div class="team-name">${team.name}</div>
+              <div class="team-members">${team.members}</div>
+            </div>
+            <div class="team-total" id="total-${ti}">${total}</div>
+          </div>
+          <div class="team-scores">
+            ${CRITERIA.map(c => `
+              <div class="score-item">
+                <div class="score-label">${c.label}</div>
+                <div class="score-slider-area">
+                  <input type="range" min="0" max="10" value="${scores[ti][c.key]}"
+                    oninput="updateScore(${ti},'${c.key}',this.value)">
+                  <div class="score-val" id="val-${ti}-${c.key}">${scores[ti][c.key]}</div>
+                </div>
+              </div>
+            `).join('')}
+            <div class="comment-area">
+              <div class="comment-label">所感・コメント</div>
+              <textarea class="comment-input" placeholder="良かった点、気になった点など..."
+                oninput="updateComment(${ti},this.value)">${comments[ti]}</textarea>
+            </div>
+            <div style="margin-top:0.6rem; text-align:center;">
+              <button style="padding:0.4rem 1.2rem; font-size:0.8rem; font-weight:700; border:none; border-radius:20px; background:linear-gradient(135deg,#b8860b,#ffd700); color:#1a0a00; cursor:pointer; font-family:'Noto Sans JP',sans-serif;"
+                onclick="submitScore(${ti}, this)">採点結果を送信する</button>
+            </div>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+
+      updateSummary();
+    }
+
+    function toggleCard(header) {
+      header.closest('.team-card').classList.toggle('expanded');
+    }
+
+    function updateScore(ti, key, val) {
+      val = parseInt(val);
+      scores[ti][key] = val;
+      document.getElementById(`val-${ti}-${key}`).textContent = val;
+      const total = scores[ti].business + scores[ti].quality + scores[ti].pres;
+      document.getElementById(`total-${ti}`).textContent = total;
+      updateSummary();
+      saveToLocal();
+    }
+
+    function updateSummary() {
+      const scored = scores.filter(s => s.business + s.quality + s.pres > 0).length;
+      document.getElementById('summary-count').textContent = `${scored} / ${TEAMS.length} チーム`;
+    }
+
+    function showRanking() {
+      const ranked = TEAMS.map((t, i) => ({
+        name: t.name,
+        score: scores[i].business + scores[i].quality + scores[i].pres
+      })).sort((a, b) => b.score - a.score);
+
+      const list = document.getElementById('ranking-list');
+      list.innerHTML = '';
+      ranked.forEach((r, i) => {
+        const item = document.createElement('div');
+        item.className = 'ranking-item';
+        item.innerHTML = `
+          <div class="ranking-pos">${i+1}</div>
+          <div class="ranking-name">${r.name}</div>
+          <div class="ranking-score">${r.score}</div>
+        `;
+        list.appendChild(item);
+      });
+      document.getElementById('ranking-overlay').classList.add('show');
+    }
+
+    async function submitScore(ti, btn) {
+      const scorer = document.getElementById('scorer-name').value;
+      if (!scorer) {
+        alert('名前を入力してください');
+        return;
+      }
+      saveToLocal();
+
+      btn.textContent = '送信中...';
+      btn.disabled = true;
+
+      const team = TEAMS[ti];
+      const payload = {
+        scorer,
+        team: team.name,
+        scores: scores[ti],
+        comment: comments[ti]
+      };
+
+      try {
+        if (GAS_URL) {
+          await fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        const card = btn.closest('.team-card');
+        card.classList.remove('expanded');
+        card.style.borderColor = 'rgba(74,170,74,0.4)';
+        btn.textContent = '送信済';
+        btn.style.opacity = '0.5';
+        btn.style.background = '#4a4';
+        btn.style.color = '#fff';
+      } catch (err) {
+        btn.textContent = '送信エラー（再試行）';
+        btn.disabled = false;
+        console.error(err);
+      }
+    }
+
+    function presentScore(ti) {
+      const team = TEAMS[ti];
+      const s = scores[ti];
+      const total = s.business + s.quality + s.pres;
+      const name = document.getElementById('scorer-name').value || '匿名';
+
+      document.getElementById('present-scorer').textContent = `${name} の採点`;
+      document.getElementById('present-team-name').textContent = team.name;
+      document.getElementById('present-scores').innerHTML = CRITERIA.map(c =>
+        `<div class="present-score-row"><span>${c.label}</span><span class="present-score-val">${s[c.key]}</span></div>`
+      ).join('');
+      document.getElementById('present-total').textContent = total;
+      document.getElementById('present-comment').textContent = comments[ti] || '（コメントなし）';
+      document.getElementById('present-overlay').classList.add('show');
+    }
+
+    function updateComment(ti, val) {
+      comments[ti] = val;
+      saveToLocal();
+    }
+
+    // Persist to localStorage
+    function saveToLocal() {
+      const name = document.getElementById('scorer-name').value;
+      localStorage.setItem('bb2-scorer', name);
+      localStorage.setItem('bb2-scores', JSON.stringify(scores));
+      localStorage.setItem('bb2-comments', JSON.stringify(comments));
+    }
+    function loadFromLocal() {
+      const name = localStorage.getItem('bb2-scorer');
+      if (name) document.getElementById('scorer-name').value = name;
+      const saved = localStorage.getItem('bb2-scores');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          parsed.forEach((s, i) => { if (scores[i]) Object.assign(scores[i], s); });
+        } catch(e) {}
+      }
+      const savedComments = localStorage.getItem('bb2-comments');
+      if (savedComments) {
+        try {
+          const parsed = JSON.parse(savedComments);
+          parsed.forEach((c, i) => { if (i < comments.length) comments[i] = c; });
+        } catch(e) {}
+      }
+    }
+    document.getElementById('scorer-name').addEventListener('input', saveToLocal);
+
+    loadFromLocal();
+    render();
+  </script>
+</body>
+</html>

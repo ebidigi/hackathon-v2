@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Code Build Battle Vol.2</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Orbitron:wght@700;900&family=Bebas+Neue&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      overflow: hidden;
+      height: 100vh; width: 100vw;
+    }
+
+    /* === Screens === */
+    .screen { display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; flex-direction:column; align-items:center; justify-content:center; }
+    .screen.active { display:flex; }
+
+    /* === Buttons === */
+    .btn { padding:0.8rem 2.2rem; font-size:1.15rem; font-weight:700; border:none; border-radius:50px; cursor:pointer; transition:all 0.3s; font-family:'Noto Sans JP',sans-serif; }
+    .btn-gold { background:linear-gradient(135deg,#b8860b,#ffd700,#daa520); color:#1a0a00; box-shadow:0 4px 20px rgba(255,215,0,0.3); }
+    .btn-gold:hover { transform:scale(1.05); box-shadow:0 4px 40px rgba(255,215,0,0.5); }
+    .btn-dark { background:rgba(255,255,255,0.08); color:#ccc; border:1px solid rgba(255,255,255,0.15); }
+    .btn-dark:hover { background:rgba(255,255,255,0.15); color:#fff; }
+    .btn-sm { padding:0.55rem 1.4rem; font-size:0.95rem; }
+
+    /* ============================
+       1. Title
+    ============================ */
+    #title-screen {
+      background: radial-gradient(ellipse at 30% 20%,rgba(180,130,0,0.15) 0%,transparent 50%),
+                  radial-gradient(ellipse at 70% 80%,rgba(180,130,0,0.1) 0%,transparent 50%),
+                  linear-gradient(180deg,#0d0d0d,#1a1000 50%,#0d0d0d);
+    }
+    .m1-subtitle { font-size:1.4rem; font-weight:700; color:#b8860b; letter-spacing:0.5em; }
+    .m1-title { font-family:'Orbitron',sans-serif; font-size:4rem; font-weight:900; background:linear-gradient(180deg,#fff8dc,#ffd700,#b8860b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; line-height:1.2; filter:drop-shadow(0 0 30px rgba(255,215,0,0.3)); }
+    .m1-vol { font-family:'Orbitron',sans-serif; font-size:5.5rem; font-weight:900; background:linear-gradient(180deg,#ffd700,#b8860b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; line-height:1; margin:0.3rem 0 1.5rem; }
+    .title-divider { width:300px; height:2px; background:linear-gradient(90deg,transparent,#b8860b,#ffd700,#b8860b,transparent); margin:1rem auto; }
+    .title-prize-box { margin-top:1.5rem; padding:1.5rem 2.5rem; background:rgba(184,134,11,0.08); border:1px solid rgba(184,134,11,0.3); border-radius:12px; text-align:center; max-width:600px; }
+    .title-prize-box h3 { font-size:1.1rem; color:#ffd700; letter-spacing:0.2em; margin-bottom:0.8rem; }
+    .prize-main { font-size:1.2rem; font-weight:900; color:#ffd700; }
+    .prize-sub { font-size:0.95rem; color:#b8860b; margin-top:0.3rem; }
+
+    /* ============================
+       2. Lottery (笑神籤)
+    ============================ */
+    #lottery-screen {
+      background: radial-gradient(ellipse at 50% 60%,rgba(180,130,0,0.08) 0%,transparent 50%),
+                  linear-gradient(180deg,#0a0a0a,#0d0800 50%,#0a0a0a);
+      overflow:hidden;
+    }
+    .lottery-header { position:absolute; top:40px; text-align:center; z-index:10; }
+    .lottery-header h1 { font-size:2.2rem; font-weight:900; color:#ffd700; letter-spacing:0.3em; text-shadow:0 0 30px rgba(255,215,0,0.3); }
+    .lottery-header p { font-size:0.95rem; color:#666; margin-top:0.3rem; }
+    .lottery-round { font-size:1rem; color:#b8860b; margin-top:0.5rem; letter-spacing:0.1em; }
+
+    /* Tower */
+    .tower-area { position:relative; display:flex; align-items:flex-end; justify-content:center; height:60vh; z-index:5; }
+    .tower { position:relative; width:120px; height:400px; cursor:pointer; }
+    .tower:hover .tower-body { box-shadow:0 0 50px rgba(255,215,0,0.15); }
+    .tower-body { position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:100px; height:340px; background:linear-gradient(135deg,#2a2a2a,#1a1a1a,#0a0a0a,#1a1a1a); clip-path:polygon(15% 0%,85% 0%,100% 5%,100% 95%,85% 100%,15% 100%,0% 95%,0% 5%); transition:box-shadow 0.3s; }
+    .tower-body::before { content:''; position:absolute; top:0; left:8px; right:8px; bottom:0; border-left:1px solid rgba(255,215,0,0.2); border-right:1px solid rgba(255,215,0,0.2); }
+    .tower-body::after { content:''; position:absolute; left:50%; transform:translateX(-50%); top:8px; bottom:8px; width:1px; background:rgba(255,215,0,0.1); }
+    .tower-cap { position:absolute; top:-20px; left:50%; transform:translateX(-50%); width:110px; height:25px; background:linear-gradient(180deg,#3a3a3a,#1a1a1a); clip-path:polygon(10% 0%,90% 0%,100% 100%,0% 100%); border-top:2px solid rgba(255,215,0,0.3); }
+    .tower-base { position:absolute; bottom:-25px; left:50%; transform:translateX(-50%); width:140px; height:50px; }
+    .tower-base-ring { position:absolute; left:50%; transform:translateX(-50%); border-radius:6px; }
+    .tower-base-ring:nth-child(1) { bottom:24px; width:120px; height:12px; background:linear-gradient(180deg,#daa520,#b8860b,#8b6914); box-shadow:0 2px 10px rgba(218,165,32,0.3); }
+    .tower-base-ring:nth-child(2) { bottom:12px; width:130px; height:12px; background:linear-gradient(180deg,#daa520,#b8860b,#8b6914); }
+    .tower-base-ring:nth-child(3) { bottom:0; width:140px; height:12px; background:linear-gradient(180deg,#daa520,#b8860b,#8b6914); box-shadow:0 4px 15px rgba(218,165,32,0.4); }
+    .tower-label { position:absolute; top:60px; left:50%; transform:translateX(-50%); writing-mode:vertical-rl; font-size:2.2rem; font-weight:900; color:#daa520; text-shadow:0 0 15px rgba(218,165,32,0.5); letter-spacing:0.15em; z-index:2; }
+
+    /* Stick */
+    .stick-container { position:absolute; left:50%; transform:translateX(-50%); bottom:0; width:60px; overflow:visible; z-index:3; }
+    .stick { position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:50px; height:500px; background:linear-gradient(90deg,#1a1a1a,#2a2a2a,#1a1a1a); border-radius:4px 4px 2px 2px; box-shadow:2px 0 8px rgba(0,0,0,0.5),-2px 0 8px rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; opacity:0; }
+    .stick.rising { opacity:1; animation:stickRise 1.8s cubic-bezier(0.22,1,0.36,1) forwards; }
+    @keyframes stickRise { 0%{transform:translateX(-50%) translateY(100%)} 100%{transform:translateX(-50%) translateY(-40px)} }
+    .stick-text { writing-mode:vertical-rl; font-size:1.6rem; font-weight:900; color:#fff; letter-spacing:0.25em; text-shadow:0 0 10px rgba(255,255,255,0.3); white-space:nowrap; }
+
+    /* Reveal overlay */
+    .reveal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); z-index:100; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; }
+    .reveal-overlay.show { display:flex; }
+    .reveal-stick { width:90px; height:70vh; background:linear-gradient(90deg,#1a1a1a,#2d2d2d,#222,#1a1a1a); border-radius:6px; display:flex; align-items:center; justify-content:center; box-shadow:4px 0 20px rgba(0,0,0,0.8),-4px 0 20px rgba(0,0,0,0.8),0 0 60px rgba(255,215,0,0.1); position:relative; animation:revealAppear 0.8s cubic-bezier(0.22,1,0.36,1) forwards; }
+    @keyframes revealAppear { 0%{transform:translateY(100vh);opacity:0} 100%{transform:translateY(0);opacity:1} }
+    .reveal-stick::before,.reveal-stick::after { content:''; position:absolute; left:8px; right:8px; height:1px; background:linear-gradient(90deg,transparent,rgba(255,215,0,0.3),transparent); }
+    .reveal-stick::before { top:20px; }
+    .reveal-stick::after { bottom:20px; }
+    .reveal-stick-text { writing-mode:vertical-rl; font-size:4rem; font-weight:900; color:#fff; letter-spacing:0.4em; text-shadow:0 0 20px rgba(255,255,255,0.4); }
+    .reveal-order-badge { position:absolute; top:30px; font-family:'Orbitron',sans-serif; font-size:1.5rem; color:#ffd700; letter-spacing:0.1em; text-shadow:0 0 20px rgba(255,215,0,0.5); }
+    .reveal-click-hint { position:absolute; bottom:40px; font-size:0.9rem; color:#555; animation:hintPulse 2s ease-in-out infinite; }
+    @keyframes hintPulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+    /* Order list */
+    .order-list { position:absolute; right:40px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:0.7rem; z-index:10; }
+    .order-slot { display:flex; align-items:center; gap:0.8rem; padding:0.6rem 1.2rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; min-width:220px; transition:all 0.5s; }
+    .order-slot.filled { background:rgba(184,134,11,0.1); border-color:rgba(255,215,0,0.3); }
+    .order-slot.current { border-color:#ffd700; box-shadow:0 0 15px rgba(255,215,0,0.2); }
+    .order-num { font-family:'Orbitron',sans-serif; font-size:1.5rem; font-weight:900; color:#b8860b; min-width:35px; text-align:center; }
+    .order-name { font-size:1.1rem; font-weight:700; color:#555; }
+    .order-slot.filled .order-name { color:#ddd; }
+    .order-status { font-size:0.7rem; color:#555; margin-left:auto; }
+    .order-slot.done .order-status { color:#4a4; }
+
+    /* All done button */
+    .lottery-done-area { position:absolute; bottom:80px; z-index:10; display:none; }
+
+    /* ============================
+       3. Presentation (M-1 Stage Style)
+    ============================ */
+    #presentation-screen {
+      background: #020200;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* === Giant D — geometric M-1 style === */
+    .stage-d-wrap {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      width:80vmin; height:85vmin;
+      pointer-events:none; z-index:0;
+    }
+    /* The D shape via SVG */
+    .stage-d-svg {
+      width:100%; height:100%;
+      filter: drop-shadow(0 0 60px rgba(50,200,120,0.15))
+             drop-shadow(0 0 120px rgba(184,134,11,0.1));
+    }
+    /* Green inner fill with animated gradient */
+    .d-fill {
+      fill: url(#dGradient);
+      opacity:0.85;
+    }
+    /* Gold stroke */
+    .d-stroke {
+      fill:none;
+      stroke:url(#goldGradient);
+      stroke-width:3;
+      filter: drop-shadow(0 0 6px rgba(255,215,0,0.4));
+    }
+    /* Geometric pattern lines inside D */
+    .d-pattern {
+      stroke:rgba(255,215,0,0.12);
+      stroke-width:0.8;
+      fill:none;
+    }
+
+    /* === Spotlight beams === */
+    .stage-lights {
+      position:absolute; top:0; left:0; width:100%; height:100%;
+      pointer-events:none; z-index:1; overflow:hidden;
+    }
+    .beam {
+      position:absolute;
+      top:-10%;
+      width:0; height:0;
+      border-left:40px solid transparent;
+      border-right:40px solid transparent;
+      border-top:70vh solid rgba(255,235,180,0.04);
+      transform-origin:top center;
+      animation:beamSway 5s ease-in-out infinite;
+      filter:blur(8px);
+    }
+    .beam:nth-child(1) { left:5%; --sa:-20deg; animation-delay:0s; }
+    .beam:nth-child(2) { left:20%; --sa:-10deg; animation-delay:1s; }
+    .beam:nth-child(3) { left:45%; --sa:0deg; animation-delay:0.4s; border-top-color:rgba(255,235,180,0.06); }
+    .beam:nth-child(4) { left:70%; --sa:10deg; animation-delay:1.5s; }
+    .beam:nth-child(5) { left:88%; --sa:20deg; animation-delay:0.7s; }
+    @keyframes beamSway {
+      0%,100% { transform:rotate(var(--sa,0deg)); opacity:0.7; }
+      50% { transform:rotate(calc(var(--sa,0deg) + 6deg)); opacity:1; }
+    }
+
+    /* === Gold ornamental side pillars === */
+    .stage-pillar {
+      position:absolute; top:0; width:60px; height:100%; z-index:2;
+      pointer-events:none;
+      background:
+        repeating-linear-gradient(180deg,
+          rgba(184,134,11,0.06) 0px,
+          rgba(184,134,11,0.12) 2px,
+          rgba(184,134,11,0.04) 4px,
+          transparent 6px,
+          transparent 20px
+        );
+    }
+    .stage-pillar::before {
+      content:'';
+      position:absolute; top:0; bottom:0; width:3px;
+      background:linear-gradient(180deg,
+        rgba(255,215,0,0.5),
+        rgba(184,134,11,0.3) 20%,
+        rgba(255,215,0,0.4) 50%,
+        rgba(184,134,11,0.3) 80%,
+        rgba(255,215,0,0.5));
+      box-shadow:0 0 12px rgba(255,215,0,0.3);
+    }
+    .stage-pillar.left { left:0; }
+    .stage-pillar.left::before { right:0; }
+    .stage-pillar.right { right:0; }
+    .stage-pillar.right::before { left:0; }
+    /* Pillar decorative dots */
+    .stage-pillar::after {
+      content:'';
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      width:20px; height:80%;
+      background:
+        radial-gradient(circle 2px, rgba(255,215,0,0.5) 50%, transparent 50%) 10px 0/20px 24px,
+        radial-gradient(circle 2px, rgba(255,215,0,0.3) 50%, transparent 50%) 10px 12px/20px 24px;
+    }
+
+    /* === Marquee lights === */
+    .marquee-lights {
+      position:absolute; left:0; width:100%; height:10px; z-index:3;
+      display:flex; justify-content:space-evenly; align-items:center;
+    }
+    .marquee-lights.top { top:0; background:linear-gradient(180deg,rgba(20,15,0,0.9),transparent); padding-top:2px; }
+    .marquee-lights.bottom { bottom:65px; background:linear-gradient(0deg,rgba(20,15,0,0.9),transparent); padding-bottom:2px; }
+    .marquee-dot {
+      width:7px; height:7px; border-radius:50%;
+      background:#ffd700;
+      animation:marqueeFlash 1.2s ease-in-out infinite;
+    }
+    .marquee-dot:nth-child(3n) { animation-delay:0.4s; }
+    .marquee-dot:nth-child(3n+1) { animation-delay:0.8s; }
+    @keyframes marqueeFlash {
+      0%,100% { opacity:0.1; box-shadow:0 0 2px rgba(255,215,0,0.2); }
+      50% { opacity:1; box-shadow:0 0 10px #ffd700, 0 0 20px rgba(255,215,0,0.3); }
+    }
+
+    /* === Sparkle / sequin particles === */
+    .sparkle {
+      position:absolute;
+      width:3px; height:3px;
+      background:#ffd700;
+      border-radius:50%;
+      pointer-events:none;
+      z-index:1;
+      animation:sparkleAnim linear infinite;
+    }
+    @keyframes sparkleAnim {
+      0%,100% { opacity:0; transform:scale(0); }
+      20% { opacity:1; transform:scale(1); }
+      40% { opacity:0.6; transform:scale(0.5); }
+      60% { opacity:1; transform:scale(1.2); }
+      80% { opacity:0.3; transform:scale(0.6); }
+    }
+
+    /* === Stage floor === */
+    .stage-floor {
+      position:absolute; bottom:0; left:0; width:100%; height:25%;
+      background:linear-gradient(180deg, transparent 0%, rgba(184,134,11,0.04) 40%, rgba(184,134,11,0.08) 100%);
+      pointer-events:none; z-index:0;
+    }
+    /* Floor reflection line */
+    .stage-floor::before {
+      content:'';
+      position:absolute; top:0; left:10%; right:10%; height:1px;
+      background:linear-gradient(90deg, transparent, rgba(255,215,0,0.15), rgba(255,215,0,0.25), rgba(255,215,0,0.15), transparent);
+    }
+
+    /* === Content on stage === */
+    .pres-content {
+      position:relative; z-index:4;
+      text-align:center;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+    }
+    .pres-badge {
+      font-family:'Bebas Neue','Orbitron',sans-serif;
+      font-size:1.8rem;
+      color:#daa520;
+      letter-spacing:0.6em;
+      text-transform:uppercase;
+      text-shadow:0 0 15px rgba(218,165,32,0.6), 0 0 40px rgba(218,165,32,0.2);
+      border-bottom:2px solid rgba(218,165,32,0.3);
+      padding-bottom:0.3rem;
+    }
+    .pres-num {
+      font-family:'Bebas Neue','Orbitron',sans-serif;
+      font-size:14rem;
+      font-weight:400;
+      background:linear-gradient(180deg, #fff8dc 0%, #ffd700 30%, #daa520 60%, #b8860b 100%);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      line-height:0.9;
+      filter:drop-shadow(0 0 50px rgba(255,215,0,0.5)) drop-shadow(0 6px 12px rgba(0,0,0,0.9));
+      -webkit-text-stroke:1px rgba(255,215,0,0.2);
+    }
+    .pres-team {
+      font-size:5rem;
+      font-weight:900;
+      margin:0.2rem 0;
+      background:linear-gradient(180deg, #fff 0%, #fff 40%, #e0e0e0 100%);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      filter:drop-shadow(0 0 40px rgba(255,215,0,0.2)) drop-shadow(0 4px 8px rgba(0,0,0,0.8));
+      letter-spacing:0.08em;
+    }
+    .pres-members {
+      font-family:'Bebas Neue',sans-serif;
+      font-size:1.6rem;
+      color:#daa520;
+      margin-top:0.5rem;
+      letter-spacing:0.25em;
+      text-shadow:0 0 15px rgba(218,165,32,0.4);
+    }
+    .pres-controls {
+      position:absolute; bottom:80px; z-index:5;
+      display:flex; gap:0.8rem; flex-wrap:wrap; justify-content:center;
+    }
+
+    /* ============================
+       4. Winner
+    ============================ */
+    #winner-screen {
+      background: radial-gradient(ellipse at 50% 40%,rgba(180,130,0,0.12) 0%,transparent 50%),
+                  linear-gradient(180deg,#0a0a0a,#1a1000,#0a0a0a);
+    }
+    .winner-label { font-size:1.5rem; font-weight:900; color:#b8860b; letter-spacing:0.8em; margin-bottom:0.5rem; }
+    .winner-name { font-size:5rem; font-weight:900; background:linear-gradient(180deg,#fff8dc,#ffd700,#b8860b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 40px rgba(255,215,0,0.4)); margin:0.5rem 0; }
+    .winner-members { font-size:1.3rem; color:#b8860b; margin-bottom:2rem; }
+    .winner-prize-box { padding:2rem 3rem; background:rgba(184,134,11,0.08); border:2px solid rgba(255,215,0,0.3); border-radius:16px; text-align:center; max-width:600px; }
+    .winner-prize-box h3 { font-size:1.2rem; color:#ffd700; letter-spacing:0.3em; margin-bottom:1rem; }
+    .winner-prize-box p { font-size:1.1rem; color:#ccc; line-height:2; }
+    .confetti { position:fixed; top:-20px; animation:confettiFall linear forwards; z-index:200; pointer-events:none; }
+    @keyframes confettiFall { 0%{transform:translateY(-20px) rotate(0deg);opacity:1} 100%{transform:translateY(110vh) rotate(720deg);opacity:0} }
+
+    /* ============================
+       5. Progress (進行表)
+    ============================ */
+    #progress-screen {
+      background:linear-gradient(180deg,#0a0a0a,#0d0800,#0a0a0a);
+      overflow-y:auto; padding:40px 0 80px;
+    }
+    .progress-title { font-family:'Orbitron',sans-serif; font-size:1.8rem; color:#ffd700; letter-spacing:0.2em; margin-bottom:0.5rem; flex-shrink:0; }
+    .progress-subtitle { font-size:0.95rem; color:#666; margin-bottom:2rem; flex-shrink:0; }
+    .progress-table { width:90%; max-width:900px; border-collapse:collapse; flex-shrink:0; }
+    .progress-table th { background:rgba(184,134,11,0.15); color:#ffd700; font-size:0.95rem; padding:0.8rem 1rem; text-align:left; border-bottom:2px solid rgba(255,215,0,0.3); }
+    .progress-table td { padding:0.8rem 1rem; border-bottom:1px solid rgba(255,255,255,0.06); font-size:0.95rem; color:#ccc; }
+    .timetable { width:90%; max-width:900px; margin-top:2rem; border-collapse:collapse; flex-shrink:0; }
+    .timetable th { background:rgba(184,134,11,0.15); color:#ffd700; font-size:0.9rem; padding:0.6rem 1rem; text-align:left; border-bottom:2px solid rgba(255,215,0,0.3); }
+    .timetable td { padding:0.6rem 1rem; border-bottom:1px solid rgba(255,255,255,0.06); font-size:0.9rem; color:#ccc; }
+
+    /* ============================
+       Nav
+    ============================ */
+    .nav { position:fixed; bottom:15px; left:50%; transform:translateX(-50%); display:flex; gap:0.3rem; z-index:50; background:rgba(0,0,0,0.7); padding:0.4rem; border-radius:50px; backdrop-filter:blur(10px); border:1px solid rgba(255,215,0,0.1); }
+    .nav-btn { padding:0.4rem 1rem; font-size:0.8rem; border:1px solid rgba(255,255,255,0.1); background:transparent; color:#666; border-radius:25px; cursor:pointer; transition:all 0.3s; font-family:'Noto Sans JP',sans-serif; font-weight:700; }
+    .nav-btn:hover,.nav-btn.active { background:rgba(184,134,11,0.2); color:#ffd700; border-color:rgba(255,215,0,0.3); }
+
+    /* YouTube - removed, operate separately */
+    #yt-player-wrap { display:none; }
+
+    /* Tower shake */
+    @keyframes towerShake {
+      0%,100% { transform:translateX(0); }
+      25% { transform:translateX(-3px) rotate(-0.5deg); }
+      75% { transform:translateX(3px) rotate(0.5deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Title -->
+  <div class="screen active" id="title-screen">
+    <div style="text-align:center">
+      <div class="m1-subtitle">CLAUDE CODE</div>
+      <div class="m1-title">BUILD BATTLE</div>
+      <div class="m1-vol">Vol.2</div>
+    </div>
+    <div class="title-divider"></div>
+    <div class="title-prize-box">
+      <h3>WINNER'S PRIZE</h3>
+      <p class="prize-main">1日間すみちゃんのオフィスで仕事できる</p>
+      <p class="prize-sub">& すみなが先生と安達でプロダクトを伸ばしていい時間を設ける</p>
+    </div>
+    <button class="btn btn-gold" style="margin-top:2rem" onclick="goTo('lottery-screen')">笑神籤スタート</button>
+  </div>
+
+  <!-- 2. Lottery -->
+  <div class="screen" id="lottery-screen">
+    <div class="lottery-header">
+      <h1>笑 神 籤</h1>
+      <p>笑神籤をクリックして抽選</p>
+      <div class="lottery-round" id="lottery-round">第 1 発表を決定</div>
+    </div>
+
+    <div class="tower-area">
+      <div class="tower" id="tower" onclick="drawLottery()">
+        <div class="tower-cap"></div>
+        <div class="tower-body"></div>
+        <div class="tower-label">笑神籤</div>
+        <div class="stick-container" id="stick-container">
+          <div class="stick" id="stick">
+            <span class="stick-text" id="stick-text"></span>
+          </div>
+        </div>
+        <div class="tower-base">
+          <div class="tower-base-ring"></div>
+          <div class="tower-base-ring"></div>
+          <div class="tower-base-ring"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="order-list" id="order-list"></div>
+
+    <div class="lottery-done-area" id="lottery-done-area">
+      <button class="btn btn-gold btn-sm" onclick="goTo('winner-screen'); showWinner()">最終結果発表</button>
+    </div>
+
+    <!-- Reveal overlay -->
+    <div class="reveal-overlay" id="reveal-overlay" onclick="closeRevealAndPresent()">
+      <div class="reveal-order-badge" id="reveal-order-badge"></div>
+      <div class="reveal-stick" id="reveal-stick">
+        <span class="reveal-stick-text" id="reveal-stick-text"></span>
+      </div>
+      <div class="reveal-click-hint">クリックで発表画面へ</div>
+    </div>
+  </div>
+
+  <!-- 3. Presentation -->
+  <div class="screen" id="presentation-screen">
+    <!-- Stage set -->
+    <!-- Giant D with geometric pattern (SVG) -->
+    <div class="stage-d-wrap">
+      <svg class="stage-d-svg" viewBox="0 0 400 450" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id="dGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1a6b3a" stop-opacity="0.7"/>
+            <stop offset="30%" stop-color="#0d4d28" stop-opacity="0.6"/>
+            <stop offset="60%" stop-color="#2a8050" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="#0a3318" stop-opacity="0.6"/>
+          </linearGradient>
+          <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffd700"/>
+            <stop offset="30%" stop-color="#b8860b"/>
+            <stop offset="60%" stop-color="#ffd700"/>
+            <stop offset="100%" stop-color="#b8860b"/>
+          </linearGradient>
+          <linearGradient id="greenShine" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#3ddc84" stop-opacity="0.15"/>
+            <stop offset="50%" stop-color="#1a6b3a" stop-opacity="0.05"/>
+            <stop offset="100%" stop-color="#3ddc84" stop-opacity="0.15"/>
+          </linearGradient>
+        </defs>
+        <!-- D shape -->
+        <path class="d-fill" d="M80,30 L80,420 L200,420 C310,420 370,340 370,225 C370,110 310,30 200,30 Z M130,80 L200,80 C280,80 320,140 320,225 C320,310 280,370 200,370 L130,370 Z"/>
+        <path class="d-stroke" d="M80,30 L80,420 L200,420 C310,420 370,340 370,225 C370,110 310,30 200,30 Z M130,80 L200,80 C280,80 320,140 320,225 C320,310 280,370 200,370 L130,370 Z"/>
+        <!-- Geometric pattern lines inside -->
+        <line class="d-pattern" x1="130" y1="80" x2="320" y2="225"/>
+        <line class="d-pattern" x1="130" y1="370" x2="320" y2="225"/>
+        <line class="d-pattern" x1="80" y1="30" x2="370" y2="225"/>
+        <line class="d-pattern" x1="80" y1="420" x2="370" y2="225"/>
+        <line class="d-pattern" x1="130" y1="225" x2="320" y2="225"/>
+        <line class="d-pattern" x1="200" y1="80" x2="200" y2="370"/>
+        <line class="d-pattern" x1="80" y1="225" x2="200" y2="30"/>
+        <line class="d-pattern" x1="80" y1="225" x2="200" y2="420"/>
+        <line class="d-pattern" x1="160" y1="80" x2="280" y2="370"/>
+        <line class="d-pattern" x1="160" y1="370" x2="280" y2="80"/>
+        <!-- Green shine overlay -->
+        <path d="M80,30 L80,420 L200,420 C310,420 370,340 370,225 C370,110 310,30 200,30 Z" fill="url(#greenShine)"/>
+      </svg>
+    </div>
+
+    <!-- Spotlight beams -->
+    <div class="stage-lights">
+      <div class="beam" style="--sa:-22deg"></div>
+      <div class="beam" style="--sa:-11deg"></div>
+      <div class="beam" style="--sa:0deg"></div>
+      <div class="beam" style="--sa:11deg"></div>
+      <div class="beam" style="--sa:22deg"></div>
+    </div>
+    <div class="stage-floor"></div>
+
+    <!-- Gold ornamental pillars -->
+    <div class="stage-pillar left"></div>
+    <div class="stage-pillar right"></div>
+
+    <!-- Marquee lights -->
+    <div class="marquee-lights top" id="marquee-top"></div>
+    <div class="marquee-lights bottom" id="marquee-bottom"></div>
+
+    <!-- Sparkles (generated in JS) -->
+    <div class="sparkle-container" id="sparkle-container"></div>
+
+    <!-- Content -->
+    <div class="pres-content">
+      <div class="pres-badge">PRESENTATION</div>
+      <div class="pres-num" id="pres-num"></div>
+      <div class="pres-team" id="pres-team"></div>
+      <div class="pres-members" id="pres-members"></div>
+    </div>
+    <div class="pres-controls">
+      <button class="btn btn-gold btn-sm" id="next-lottery-btn" onclick="finishCurrentAndGoLottery()">
+        次の抽選へ
+      </button>
+    </div>
+  </div>
+
+  <!-- 4. Winner -->
+  <div class="screen" id="winner-screen">
+    <div class="winner-label">CHAMPION</div>
+    <div class="winner-name" id="winner-name"></div>
+    <div class="winner-members" id="winner-members"></div>
+    <div id="winner-ranking" style="width:90%;max-width:500px;margin:1rem 0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,215,0,0.15);border-radius:12px;padding:0.8rem 0;"></div>
+    <div class="winner-prize-box">
+      <h3>PRIZE</h3>
+      <p>1日間すみちゃんのオフィスで仕事できる<br>& すみなが先生と安達で<br>プロダクトを伸ばしていい時間を設ける</p>
+    </div>
+  </div>
+
+  <!-- 5. Progress -->
+  <div class="screen" id="progress-screen">
+    <div class="progress-title">PROGRESS</div>
+    <div class="progress-subtitle">Claude Code Build Battle Vol.2 - 進行表</div>
+    <table class="progress-table">
+      <thead><tr><th>順番</th><th>チーム名</th><th>メンバー</th><th>状態</th></tr></thead>
+      <tbody id="progress-tbody"></tbody>
+    </table>
+    <table class="timetable">
+      <thead><tr><th>時間</th><th>内容</th><th>所要</th></tr></thead>
+      <tbody>
+        <tr><td>0:00</td><td>オープニング & ルール説明</td><td>10分</td></tr>
+        <tr><td>0:10</td><td>Phase 1: 準備（要件定義 & 実装）</td><td>60分</td></tr>
+        <tr><td>1:10</td><td>休憩 & プレゼン準備</td><td>10分</td></tr>
+        <tr><td>1:20</td><td>Phase 2: 笑神籤 → 発表(5分) → 講評（×6チーム）</td><td>60分</td></tr>
+        <tr><td>2:20</td><td>結果発表 & 表彰</td><td>10分</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <button class="nav-btn active" data-screen="title-screen" onclick="goTo('title-screen')">Title</button>
+    <button class="nav-btn" data-screen="lottery-screen" onclick="goTo('lottery-screen')">笑神籤</button>
+    <button class="nav-btn" data-screen="presentation-screen" onclick="goTo('presentation-screen')">発表</button>
+    <button class="nav-btn" data-screen="winner-screen" onclick="goTo('winner-screen')">優勝</button>
+    <button class="nav-btn" data-screen="progress-screen" onclick="goTo('progress-screen'); renderProgress()">進行表</button>
+  </nav>
+
+  <!-- YouTube -->
+  <div id="yt-player-wrap"><div id="yt-player"></div></div>
+
+  <script>
+    // ==========================================
+    //  GAS Web App URL — デプロイ後にここに貼る
+    // ==========================================
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbzRlXtUxk59q2tZqCuglllMAWz_AY07FNbpH0uILeWFtY5_sBonSIHWAdR7-YoORgqQ/exec';
+
+    // ==========================================
+    //  TEAMS
+    // ==========================================
+    const TEAMS = [
+      { name:"わんこクラブ", members:"増谷、秋元、生井" },
+      { name:"お寝坊ズ",     members:"中村凌、清水" },
+      { name:"ダブルメガネ", members:"堺、川野" },
+      { name:"JK",           members:"菊池、JB" },
+      { name:"右往左往",     members:"坪井、中村峻也" },
+      { name:"いぶし銀",     members:"松居、野口" },
+      { name:"池田ジュニア", members:"池田、三善、轟" },
+      { name:"小甲陽平",     members:"小甲" },
+    ];
+
+    const DEBAYASHI_VIDEO_ID = "JlbkpHrASPU";
+
+    // ==========================================
+    //  State
+    // ==========================================
+    let presentationOrder = [];
+    let remaining = [...TEAMS];
+    let currentRound = 0;   // 0-indexed: how many have been drawn so far
+    let isDrawing = false;
+    let ytPlayer = null, ytReady = false;
+
+    // ==========================================
+    //  Nav
+    // ==========================================
+    function goTo(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.screen === id));
+    }
+
+    // ==========================================
+    //  Lottery
+    // ==========================================
+    function initOrderList() {
+      const list = document.getElementById('order-list');
+      list.innerHTML = '';
+      for (let i = 0; i < TEAMS.length; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'order-slot';
+        slot.id = `slot-${i}`;
+        slot.innerHTML = `
+          <div class="order-num">${i+1}</div>
+          <div class="order-name">---</div>
+          <div class="order-status"></div>
+        `;
+        list.appendChild(slot);
+      }
+    }
+    initOrderList();
+
+    function updateRoundLabel() {
+      const el = document.getElementById('lottery-round');
+      if (remaining.length > 0) {
+        el.textContent = `第 ${presentationOrder.length + 1} 発表を決定`;
+      } else {
+        el.textContent = '全チームの発表が完了しました';
+      }
+    }
+
+    function drawLottery() {
+      if (isDrawing || remaining.length === 0) return;
+      isDrawing = true;
+
+      const stick = document.getElementById('stick');
+      const stickText = document.getElementById('stick-text');
+      stick.classList.remove('rising');
+      stick.style.opacity = '0';
+
+      // Pick random team
+      const idx = Math.floor(Math.random() * remaining.length);
+      const chosen = remaining.splice(idx, 1)[0];
+      presentationOrder.push(chosen);
+      const orderNum = presentationOrder.length;
+
+      // Tower shake
+      const tower = document.getElementById('tower');
+      tower.style.animation = 'towerShake 0.08s linear 20';
+
+      setTimeout(() => {
+        tower.style.animation = '';
+        stickText.textContent = chosen.name;
+        stick.style.opacity = '1';
+        stick.classList.add('rising');
+
+        setTimeout(() => {
+          showReveal(chosen.name, orderNum);
+          const slot = document.getElementById(`slot-${orderNum-1}`);
+          slot.classList.add('filled');
+          slot.querySelector('.order-name').textContent = chosen.name;
+
+          setTimeout(() => {
+            stick.classList.remove('rising');
+            stick.style.opacity = '0';
+            isDrawing = false;
+          }, 500);
+        }, 1800);
+      }, 1600);
+    }
+
+    function showReveal(name, num) {
+      document.getElementById('reveal-order-badge').textContent = `第 ${num} 発表`;
+      document.getElementById('reveal-stick-text').textContent = name;
+      const rs = document.getElementById('reveal-stick');
+      rs.style.animation = 'none'; rs.offsetHeight; rs.style.animation = '';
+      document.getElementById('reveal-overlay').classList.add('show');
+    }
+
+    // Close reveal → go to presentation for this team
+    function closeRevealAndPresent() {
+      document.getElementById('reveal-overlay').classList.remove('show');
+      currentRound = presentationOrder.length - 1;
+      showPresentation(currentRound);
+      goTo('presentation-screen');
+      playDebayashi();
+    }
+
+    // ==========================================
+    //  Presentation
+    // ==========================================
+    function showPresentation(idx) {
+      const team = presentationOrder[idx];
+      if (!team) return;
+      document.getElementById('pres-num').textContent = `#${idx+1}`;
+      document.getElementById('pres-team').textContent = team.name;
+      document.getElementById('pres-members').textContent = team.members;
+
+      const btn = document.getElementById('next-lottery-btn');
+      if (remaining.length > 0) {
+        btn.textContent = '次の抽選へ';
+        btn.onclick = () => finishCurrentAndGoLottery();
+      } else {
+        btn.textContent = '最終結果発表';
+        btn.onclick = () => { goTo('winner-screen'); showWinner(); };
+      }
+    }
+
+    function finishCurrentAndGoLottery() {
+      // Mark current team as done in order list
+      const slot = document.getElementById(`slot-${currentRound}`);
+      slot.classList.add('done');
+      slot.querySelector('.order-status').textContent = '発表済';
+
+      stopDebayashi();
+      updateRoundLabel();
+      goTo('lottery-screen');
+    }
+
+    // ==========================================
+    //  YouTube
+    // ==========================================
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player('yt-player', {
+        height:'113', width:'200',
+        videoId: DEBAYASHI_VIDEO_ID,
+        playerVars: { autoplay:0, controls:1, modestbranding:1, rel:0 },
+        events: { onReady: () => { ytReady = true; } }
+      });
+    }
+    function playDebayashi() { if (ytReady && ytPlayer) { ytPlayer.seekTo(0); ytPlayer.playVideo(); } }
+    function stopDebayashi() { if (ytReady && ytPlayer) { ytPlayer.pauseVideo(); } }
+    const ytTag = document.createElement('script');
+    ytTag.src = 'https://www.youtube.com/iframe_api';
+    document.body.appendChild(ytTag);
+
+    // ==========================================
+    //  Winner — GASから集計結果を取得
+    // ==========================================
+    async function showWinner() {
+      document.getElementById('winner-name').textContent = '集計中...';
+      document.getElementById('winner-members').textContent = '';
+      document.getElementById('winner-ranking').innerHTML = '';
+
+      if (GAS_URL) {
+        try {
+          const res = await fetch(GAS_URL);
+          const data = await res.json();
+          if (data.success && data.results && data.results.length > 0) {
+            const winner = data.results[0]; // 1位
+            const winnerTeam = TEAMS.find(t => t.name === winner.name);
+            document.getElementById('winner-name').textContent = winner.name;
+            document.getElementById('winner-members').textContent = winnerTeam ? winnerTeam.members : '';
+
+            // ランキング表示
+            const rankHtml = data.results.map((r, i) => `
+              <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 1.5rem;
+                ${i===0?'color:#ffd700;font-size:1.2rem;font-weight:900;':'color:#aaa;font-size:1rem;'}">
+                <span style="font-family:'Orbitron',sans-serif;min-width:30px;${i===0?'color:#ffd700':'color:#666'}">${i+1}</span>
+                <span style="flex:1;font-weight:700;${i===0?'color:#fff':'color:#ccc'}">${r.name}</span>
+                <span style="font-family:'Orbitron',sans-serif;font-weight:900;${i===0?'color:#ffd700':'color:#888'}">${r.totalScore}</span>
+                <span style="font-size:0.7rem;color:#555">(${r.voteCount}票)</span>
+              </div>
+            `).join('');
+            document.getElementById('winner-ranking').innerHTML = rankHtml;
+
+            launchConfetti();
+            return;
+          }
+        } catch(err) {
+          console.error('GAS fetch error:', err);
+        }
+      }
+
+      // Fallback: GAS未設定 or エラー時
+      document.getElementById('winner-name').textContent = 'スプシを確認してください';
+      document.getElementById('winner-members').textContent = 'GAS_URLが未設定です';
+      launchConfetti();
+    }
+    function launchConfetti() {
+      const colors = ['#ffd700','#daa520','#b8860b','#ff6b6b','#ff9ff3','#48dbfb','#fff'];
+      for (let i = 0; i < 100; i++) {
+        setTimeout(() => {
+          const c = document.createElement('div');
+          c.className = 'confetti';
+          c.style.left = Math.random()*100+'vw';
+          c.style.background = colors[Math.floor(Math.random()*colors.length)];
+          c.style.animationDuration = (Math.random()*3+2)+'s';
+          c.style.width = (Math.random()*10+5)+'px';
+          c.style.height = (Math.random()*15+8)+'px';
+          c.style.borderRadius = Math.random()>0.5?'50%':'2px';
+          document.body.appendChild(c);
+          setTimeout(() => c.remove(), 6000);
+        }, i*40);
+      }
+    }
+
+    // ==========================================
+    //  Progress
+    // ==========================================
+    function renderProgress() {
+      const tbody = document.getElementById('progress-tbody');
+      tbody.innerHTML = '';
+      const teams = presentationOrder.length > 0 ? presentationOrder : TEAMS;
+      teams.forEach((t, i) => {
+        const isDone = document.getElementById(`slot-${i}`)?.classList.contains('done');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="color:#ffd700;font-weight:900">${presentationOrder.length>0?(i+1):'-'}</td>
+          <td style="font-weight:900;color:#fff">${t.name}</td>
+          <td style="color:#888;font-size:0.85rem">${t.members}</td>
+          <td style="color:${isDone?'#4a4':'#666'}">${isDone?'発表済':'未発表'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ==========================================
+    //  Keyboard
+    // ==========================================
+    // Sparkles
+    const sparkleContainer = document.getElementById('sparkle-container');
+    if (sparkleContainer) {
+      for (let i = 0; i < 40; i++) {
+        const s = document.createElement('div');
+        s.className = 'sparkle';
+        s.style.left = Math.random()*100 + '%';
+        s.style.top = Math.random()*100 + '%';
+        s.style.animationDuration = (Math.random()*3+2) + 's';
+        s.style.animationDelay = (Math.random()*5) + 's';
+        s.style.width = s.style.height = (Math.random()*3+2) + 'px';
+        sparkleContainer.appendChild(s);
+      }
+    }
+
+    // Marquee lights
+    ['marquee-top','marquee-bottom'].forEach(id => {
+      const el = document.getElementById(id);
+      for (let i = 0; i < 60; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'marquee-dot';
+        dot.style.animationDelay = (i * 0.05) + 's';
+        el.appendChild(dot);
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const lotteryActive = document.getElementById('lottery-screen').classList.contains('active');
+      const revealShown = document.getElementById('reveal-overlay').classList.contains('show');
+      if (e.key === ' ') {
+        e.preventDefault();
+        if (revealShown) closeRevealAndPresent();
+        else if (lotteryActive) drawLottery();
+      }
+      if (e.key === 'Escape') {
+        if (revealShown) closeRevealAndPresent();
+      }
+    });
+  </script>
+</body>
+</html>
